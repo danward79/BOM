@@ -14,7 +14,7 @@ type Observer struct {
 	LastCheck          time.Time
 	URL                string
 	LatestObservations map[string]Observation
-	ticker             *time.Ticker
+	Ticker             *time.Ticker
 }
 
 //String prints Observer details
@@ -34,13 +34,30 @@ func New(t time.Duration, u string) Observer {
 // Start check ticker, returns a <-chan time.Time,
 // which should be used for any other downstream updates
 func (o *Observer) Start() <-chan time.Time {
-	o.ticker = time.NewTicker(o.CheckFrequency)
+	o.Ticker = time.NewTicker(o.CheckFrequency)
+	out := make(chan time.Time)
 
-	return o.ticker.C
+	if err := o.GetLatestObservations(); err != nil {
+		log.Println(err)
+	}
+
+	go func() {
+
+		for range o.Ticker.C {
+			log.Println("Checking for new observations")
+			if err := o.GetLatestObservations(); err != nil {
+				log.Println(err)
+			}
+
+			out <- time.Now()
+		}
+	}()
+
+	return out
 }
 
 // Stop the check ticker
 func (o *Observer) Stop() {
-	o.ticker.Stop()
+	o.Ticker.Stop()
 	log.Println("Check ticker stopped")
 }

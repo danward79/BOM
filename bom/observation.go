@@ -33,7 +33,7 @@ type Observation struct {
 }
 
 // GetLatestObservations for all the stations on the URL provided.
-func (o *Observer) GetLatestObservations() {
+func (o *Observer) GetLatestObservations() error {
 
 	c := colly.NewCollector(
 		colly.AllowedDomains("www.bom.gov.au", "bom.gov.au"),
@@ -93,10 +93,16 @@ func (o *Observer) GetLatestObservations() {
 					log.Println("Unknown Attr:", hdr)
 				}
 			})
+
 			o.LatestObservations[obs.Name] = obs
 		}
 		o.LastCheck = time.Now()
 	})
 
-	c.Visit(o.URL)
+	err := c.Visit(o.URL)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
